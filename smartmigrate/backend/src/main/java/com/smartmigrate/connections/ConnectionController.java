@@ -47,4 +47,9 @@ public class ConnectionController {
     public Map<String, Object> test(@PathVariable Long id) {
         return service.testConnection(id);
     }
+
+    @GetMapping("/{id}/schema")
+    public Map<String, List<String>> getSchema(@PathVariable Long id) {
+        return service.fetchSchema(id);
+    }
 }

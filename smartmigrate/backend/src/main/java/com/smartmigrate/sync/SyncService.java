@@ -1,7 +1,10 @@
 package com.smartmigrate.sync;
 
+import com.smartmigrate.connections.Connection;
+import com.smartmigrate.connections.ConnectionRepository;
 import com.smartmigrate.connectors.ConnectorFactory;
 import com.smartmigrate.connectors.SourceConnector;
+import com.smartmigrate.connectors.quickbooks.QuickBooksConnector;
 import com.smartmigrate.writers.DestinationWriter;
 import com.smartmigrate.writers.WriterFactory;
 import org.springframework.http.HttpStatus;
@@ -19,15 +22,18 @@ public class SyncService {
     private final SyncLogRepository logRepo;
     private final ConnectorFactory connectorFactory;
     private final WriterFactory writerFactory;
+    private final ConnectionRepository connectionRepository;
 
     public SyncService(SyncJobRepository jobRepo,
                        SyncLogRepository logRepo,
                        ConnectorFactory connectorFactory,
-                       WriterFactory writerFactory) {
+                       WriterFactory writerFactory,
+                       ConnectionRepository connectionRepository) {
         this.jobRepo = jobRepo;
         this.logRepo = logRepo;
         this.connectorFactory = connectorFactory;
         this.writerFactory = writerFactory;
+        this.connectionRepository = connectionRepository;
     }
 
     public List<SyncJob> findAll() {
@@ -131,6 +137,9 @@ public class SyncService {
             Map<String, List<Map<String, Object>>> data = connector.extract();
             long extractDuration = System.currentTimeMillis() - extractStart;
 
+            // If QuickBooks DIRECT_TOKEN, persist the new refresh token Intuit returned
+            persistNewRefreshTokenIfNeeded(connector, job.getConnection());
+
             // Load phase
             long loadStart = System.currentTimeMillis();
             DestinationWriter writer = writerFactory.get(job.getDestination());
@@ -167,6 +176,25 @@ public class SyncService {
             case WEEKLY   -> from.plusWeeks(1);
             default       -> null;
         };
+    }
+
+    /**
+     * After a QuickBooks DIRECT_TOKEN extract, Intuit returns a new refresh token.
+     * This must be saved back to the connection config so the next sync uses it.
+     */
+    private void persistNewRefreshTokenIfNeeded(SourceConnector connector, Connection connection) {
+        if (!(connector instanceof QuickBooksConnector qbConnector)) return;
+
+        String authMode = (String) connection.getConfig().getOrDefault("authMode", "OAUTH");
+        if (!"DIRECT_TOKEN".equalsIgnoreCase(authMode)) return;
+
+        String newRefreshToken = qbConnector.getLatestRefreshToken();
+        if (newRefreshToken == null || newRefreshToken.isBlank()) return;
+
+        connectionRepository.findById(connection.getId()).ifPresent(conn -> {
+            conn.getConfig().put("refreshToken", newRefreshToken);
+            connectionRepository.save(conn);
+        });
     }
 
     /** Used by SyncScheduler to find jobs due for a scheduled run. */
