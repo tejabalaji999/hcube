@@ -45,6 +45,14 @@ public class SyncController {
         job.setDestination(destinationRepository.findById(req.destinationId())
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Destination not found")));
+        // Seed initial config with entity/object/subsidiary when provided
+        if (req.sourceEntity() != null || req.destinationObject() != null || req.subsidiaryId() != null) {
+            java.util.Map<String, Object> config = new java.util.LinkedHashMap<>();
+            if (req.sourceEntity()      != null) config.put("sourceEntity",      req.sourceEntity());
+            if (req.destinationObject() != null) config.put("destinationObject", req.destinationObject());
+            if (req.subsidiaryId()      != null) config.put("subsidiaryId",      req.subsidiaryId());
+            job.setConfig(config);
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(job));
     }
 
@@ -89,6 +97,15 @@ public class SyncController {
         return service.updateSchedule(id, req.scheduleType());
     }
 
-    public record CreateSyncRequest(String name, Long connectionId, Long destinationId) {}
+    /** Save / replace job-level config (field mappings, entity config, etc.). */
+    @PutMapping("/{id}/config")
+    public SyncJob updateConfig(@PathVariable Long id,
+                                @RequestBody java.util.Map<String, Object> config) {
+        return service.updateConfig(id, config);
+    }
+
+    public record CreateSyncRequest(String name, Long connectionId, Long destinationId,
+                                    String sourceEntity, String destinationObject,
+                                    Integer subsidiaryId) {}
     public record ScheduleRequest(SyncJob.ScheduleType scheduleType) {}
 }

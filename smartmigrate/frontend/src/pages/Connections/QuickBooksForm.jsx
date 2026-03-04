@@ -15,6 +15,7 @@ const ENTITY_OPTIONS = [
   { value: 'Bill',     label: 'Bills' },
   { value: 'Payment',  label: 'Payments' },
   { value: 'Item',     label: 'Items' },
+  { value: 'Employee', label: 'Employees' },
 ];
 
 export default function QuickBooksForm({ initialValues, onSave, onCancel }) {

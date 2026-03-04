@@ -9,3 +9,4 @@ export const getSyncLogs = (id) => api.get(`/syncs/${id}/logs`);
 export const getSyncStats = (id) => api.get(`/syncs/${id}/stats`);
 export const toggleSync = (id) => api.put(`/syncs/${id}/toggle`);
 export const updateSchedule = (id, scheduleType) => api.put(`/syncs/${id}/schedule`, { scheduleType });
+export const updateSyncConfig = (id, config) => api.put(`/syncs/${id}/config`, config);

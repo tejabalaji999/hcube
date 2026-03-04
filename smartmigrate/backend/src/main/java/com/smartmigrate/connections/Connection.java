@@ -40,6 +40,6 @@ public class Connection {
     @PreUpdate
     void onUpdate() { this.updatedAt = LocalDateTime.now(); }
 
-    public enum ConnectionType { QUICKBOOKS, MYSQL }
+    public enum ConnectionType { QUICKBOOKS, MYSQL, MSSQL }
     public enum ConnectionStatus { ACTIVE, ERROR, PENDING }
 }

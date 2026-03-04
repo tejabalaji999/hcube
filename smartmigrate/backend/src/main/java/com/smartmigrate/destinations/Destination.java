@@ -40,6 +40,6 @@ public class Destination {
     @PreUpdate
     void onUpdate() { this.updatedAt = LocalDateTime.now(); }
 
-    public enum DestinationType { AZURE_SQL, AZURE_BLOB, MYSQL_CLOUD }
+    public enum DestinationType { AZURE_SQL, AZURE_BLOB, MYSQL_CLOUD, NETSUITE }
     public enum DestinationStatus { ACTIVE, ERROR, PENDING }
 }

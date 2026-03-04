@@ -6,9 +6,11 @@ com\smartmigrate\auth\AuthService.class
 com\smartmigrate\config\WebConfig.class
 com\smartmigrate\sync\SyncController.class
 com\smartmigrate\auth\AuthController$LoginRequest.class
+com\smartmigrate\connections\ConnectionService$1.class
 com\smartmigrate\destinations\Destination$DestinationStatus.class
 com\smartmigrate\writers\DestinationWriter.class
 com\smartmigrate\connectors\SourceConnector.class
+com\smartmigrate\writers\netsuite\NetSuiteOAuthHelper.class
 com\smartmigrate\destinations\Destination.class
 com\smartmigrate\connections\Connection$ConnectionType.class
 com\smartmigrate\connectors\ConnectorFactory.class
@@ -37,6 +39,7 @@ com\smartmigrate\sync\SyncJob$SyncStatus.class
 com\smartmigrate\sync\SyncLog$LogStatus.class
 com\smartmigrate\sync\SyncController$CreateSyncRequest.class
 com\smartmigrate\sync\SyncLogRepository.class
+com\smartmigrate\connectors\mssql\MsSqlConnector.class
 com\smartmigrate\writers\azuresql\AzureSqlWriter.class
 com\smartmigrate\destinations\Destination$DestinationType.class
 com\smartmigrate\connections\ConnectionService.class
@@ -45,3 +48,4 @@ com\smartmigrate\connections\ConnectionRepository.class
 com\smartmigrate\writers\WriterFactory$1.class
 com\smartmigrate\connections\ConnectionController.class
 com\smartmigrate\sync\SyncJob.class
+com\smartmigrate\writers\netsuite\NetSuiteWriter.class

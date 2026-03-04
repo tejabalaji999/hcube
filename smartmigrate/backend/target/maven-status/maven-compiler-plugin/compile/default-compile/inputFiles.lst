@@ -25,8 +25,11 @@ C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\con
 C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\config\SecurityConfig.java
 C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\connections\Connection.java
 C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\sync\SyncLog.java
+C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\writers\netsuite\NetSuiteOAuthHelper.java
+C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\writers\netsuite\NetSuiteWriter.java
 C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\writers\WriterFactory.java
 C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\connectors\ConnectorFactory.java
 C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\connectors\SourceConnector.java
+C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\connectors\mssql\MsSqlConnector.java
 C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\destinations\Destination.java
 C:\Users\hashadmin\hcube\smartmigrate\backend\src\main\java\com\smartmigrate\destinations\DestinationRepository.java

@@ -4,8 +4,11 @@ import com.smartmigrate.connections.Connection;
 import com.smartmigrate.destinations.Destination;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "sync_jobs")
@@ -42,6 +45,11 @@ public class SyncJob {
 
     @Column(name = "last_run_at")
     private LocalDateTime lastRunAt;
+
+    /** Job-level config: sourceEntity, destinationObject, fieldMappings. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "JSON")
+    private Map<String, Object> config;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

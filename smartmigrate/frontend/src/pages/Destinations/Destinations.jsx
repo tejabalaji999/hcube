@@ -8,16 +8,18 @@ import {
   getDestinations, deleteDestination, testDestination, createDestination, updateDestination,
 } from '../../api/destinations';
 import StatusBadge from '../../components/common/StatusBadge';
-import AzureSqlForm from './AzureSqlForm';
-import AzureBlobForm from './AzureBlobForm';
-import MySqlCloudForm from './MySqlCloudForm';
+import AzureSqlForm    from './AzureSqlForm';
+import AzureBlobForm   from './AzureBlobForm';
+import MySqlCloudForm  from './MySqlCloudForm';
+import NetSuiteForm    from './NetSuiteForm';
 
 const { Title, Text } = Typography;
 
 const TYPE_META = {
-  AZURE_SQL:   { icon: '🔷', label: 'Azure SQL',    color: 'blue' },
-  AZURE_BLOB:  { icon: '☁️',  label: 'Azure Blob',   color: 'cyan' },
-  MYSQL_CLOUD: { icon: '🐬', label: 'MySQL Cloud',  color: 'green' },
+  AZURE_SQL:   { icon: '🔷', label: 'Azure SQL',    color: 'blue'   },
+  AZURE_BLOB:  { icon: '☁️',  label: 'Azure Blob',   color: 'cyan'   },
+  MYSQL_CLOUD: { icon: '🐬', label: 'MySQL Cloud',  color: 'green'  },
+  NETSUITE:    { icon: '🟣', label: 'NetSuite',     color: 'purple' },
 };
 
 export default function Destinations() {
@@ -155,12 +157,21 @@ export default function Destinations() {
                   <Text type="secondary" style={{ fontSize: 12 }}>Cloud MySQL Database</Text>
                 </Card>
               </Col>
+              <Col span={12}>
+                <Card hoverable onClick={() => setDrawerType('NETSUITE')} style={{ textAlign: 'center', cursor: 'pointer' }}>
+                  <div style={{ fontSize: 32 }}>🟣</div>
+                  <div style={{ fontWeight: 600, marginTop: 8 }}>NetSuite</div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>ERP / SuiteTalk REST</Text>
+                </Card>
+              </Col>
             </Row>
           </div>
         ) : drawerType === 'AZURE_SQL' ? (
-          <AzureSqlForm initialValues={editing} onSave={handleSave} onCancel={() => setDrawerOpen(false)} />
+          <AzureSqlForm   initialValues={editing} onSave={handleSave} onCancel={() => setDrawerOpen(false)} />
         ) : drawerType === 'AZURE_BLOB' ? (
-          <AzureBlobForm initialValues={editing} onSave={handleSave} onCancel={() => setDrawerOpen(false)} />
+          <AzureBlobForm  initialValues={editing} onSave={handleSave} onCancel={() => setDrawerOpen(false)} />
+        ) : drawerType === 'NETSUITE' ? (
+          <NetSuiteForm   initialValues={editing} onSave={handleSave} onCancel={() => setDrawerOpen(false)} />
         ) : (
           <MySqlCloudForm initialValues={editing} onSave={handleSave} onCancel={() => setDrawerOpen(false)} />
         )}

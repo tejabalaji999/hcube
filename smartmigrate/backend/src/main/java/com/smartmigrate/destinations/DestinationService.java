@@ -1,10 +1,16 @@
 package com.smartmigrate.destinations;
 
+import com.smartmigrate.writers.netsuite.NetSuiteOAuthHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.sql.DriverManager;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +57,7 @@ public class DestinationService {
                 case AZURE_SQL   -> testAzureSql(dest.getConfig());
                 case AZURE_BLOB  -> testAzureBlob(dest.getConfig());
                 case MYSQL_CLOUD -> testMysqlCloud(dest.getConfig());
+                case NETSUITE    -> testNetSuite(dest.getConfig());
             }
             dest.setStatus(Destination.DestinationStatus.ACTIVE);
             repo.save(dest);
@@ -86,6 +93,48 @@ public class DestinationService {
         try (var ignored = DriverManager.getConnection(url, username, password)) {
             // opened successfully
         }
+    }
+
+    private void testNetSuite(Map<String, Object> config) throws Exception {
+        String accountUrl = ((String) config.get("accountUrl")).strip();
+        if (accountUrl.endsWith("/")) accountUrl = accountUrl.substring(0, accountUrl.length() - 1);
+
+        String url = accountUrl + "/services/rest/record/v1/customer?limit=1&offset=0";
+        String accountId = NetSuiteOAuthHelper.extractAccountId(accountUrl);
+
+        System.out.println("[NetSuite] Test connection —————————————————————————");
+        System.out.println("[NetSuite]   accountId   : " + accountId);
+        System.out.println("[NetSuite]   url         : " + url);
+        System.out.println("[NetSuite]   consumerKey : " + mask((String) config.get("consumerKey")));
+        System.out.println("[NetSuite]   accessToken : " + mask((String) config.get("accessToken")));
+
+        String authHeader = NetSuiteOAuthHelper.buildHeader("GET", url, config);
+        System.out.println("[NetSuite]   Authorization: " + authHeader);
+
+        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", authHeader)
+                .header("Content-Type", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        System.out.println("[NetSuite]   HTTP status : " + response.statusCode());
+        System.out.println("[NetSuite]   Response    : " + response.body());
+        System.out.println("[NetSuite] —————————————————————————————————————————");
+
+        if (response.statusCode() >= 400) {
+            throw new Exception("NetSuite returned HTTP " + response.statusCode()
+                    + ": " + response.body());
+        }
+    }
+
+    /** Shows first 6 chars of a credential and masks the rest. */
+    private static String mask(String value) {
+        if (value == null || value.length() <= 6) return "***";
+        return value.substring(0, 6) + "..." + value.substring(value.length() - 4);
     }
 
     private void testAzureBlob(Map<String, Object> config) throws Exception {

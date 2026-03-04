@@ -28,17 +28,32 @@ public class MySqlCloudWriter implements DestinationWriter {
 
         int totalRows = 0;
 
+        System.out.println("[MySqlCloudWriter] Starting write — " + data.size() + " table(s) in data map");
+        data.forEach((t, rows) ->
+            System.out.println("[MySqlCloudWriter]   table='" + t + "'  rows=" + rows.size()));
+
         try (Connection conn = DriverManager.getConnection(url, username, password)) {
             conn.setAutoCommit(false);
             for (Map.Entry<String, List<Map<String, Object>>> entry : data.entrySet()) {
-                String tableName = entry.getKey();
+                String sourceKey = entry.getKey();
                 List<Map<String, Object>> rows = entry.getValue();
-                if (rows.isEmpty()) continue;
+                // Strip source schema prefix if present (e.g. "dbo.APCCS" → "APCCS")
+                String tableName = sourceKey.contains(".")
+                        ? sourceKey.substring(sourceKey.lastIndexOf('.') + 1)
+                        : sourceKey;
+                System.out.println("[MySqlCloudWriter] Processing sourceKey='" + sourceKey
+                        + "'  tableName='" + tableName + "'  rows=" + rows.size());
+                if (rows.isEmpty()) {
+                    System.out.println("[MySqlCloudWriter]   SKIPPED (empty rows)");
+                    continue;
+                }
 
                 ensureTableExists(conn, tableName, rows.get(0));
                 totalRows += insertRows(conn, tableName, rows);
+                System.out.println("[MySqlCloudWriter]   Done — running total=" + totalRows);
             }
             conn.commit();
+            System.out.println("[MySqlCloudWriter] Committed — totalRows=" + totalRows);
         }
         return totalRows;
     }
@@ -54,6 +69,7 @@ public class MySqlCloudWriter implements DestinationWriter {
         ddl.setLength(ddl.length() - 2);
         ddl.append(")");
 
+        System.out.println("[MySqlCloudWriter] DDL: " + ddl);
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(ddl.toString());
         }
@@ -67,6 +83,7 @@ public class MySqlCloudWriter implements DestinationWriter {
         String colList = String.join(", ", cols.stream().map(c -> "`" + c + "`").toList());
         String paramList = String.join(", ", cols.stream().map(c -> "?").toList());
         String sql = String.format("INSERT INTO `%s` (%s) VALUES (%s)", tableName, colList, paramList);
+        System.out.println("[MySqlCloudWriter] INSERT template: " + sql);
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             for (Map<String, Object> row : rows) {

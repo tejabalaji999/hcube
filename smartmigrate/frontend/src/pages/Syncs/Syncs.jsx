@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Button, Table, Typography, Space, Drawer, Form, Input,
-  Select, Popconfirm, message, Tag, Modal, Timeline, Spin, Empty,
+  Button, Table, Typography, Space, Drawer, Form, Input, InputNumber,
+  Select, Popconfirm, message, Tag, Modal, Timeline, Spin, Empty, Tooltip,
 } from 'antd';
 import {
   PlusOutlined, PlayCircleOutlined, DeleteOutlined,
-  HistoryOutlined, ReloadOutlined,
+  HistoryOutlined, ReloadOutlined, ApartmentOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getSyncs, createSync, deleteSync, runSync, getSyncLogs } from '../../api/syncs';
+import FieldMappingDrawer from './FieldMappingDrawer';
 import { getConnections } from '../../api/connections';
 import { getDestinations } from '../../api/destinations';
 import { StatusTag } from '../../components/common/StatusBadge';
@@ -25,8 +26,23 @@ export default function Syncs() {
   const [logsModal, setLogsModal] = useState({ open: false, jobId: null, jobName: '' });
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [mapJob, setMapJob] = useState(null);
+  const [mapOpen, setMapOpen] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+
+  // Watch selected connection / destination in create drawer
+  const selectedConnId  = Form.useWatch('connectionId',  form);
+  const selectedDestId  = Form.useWatch('destinationId', form);
+  const selectedConn    = connections.find(c => c.id === selectedConnId);
+  const selectedDest    = destinations.find(d => d.id === selectedDestId);
+  const isQbSource      = selectedConn?.type  === 'QUICKBOOKS';
+  const isNsDest        = selectedDest?.type  === 'NETSUITE';
+  const qbEntities      = selectedConn?.config?.entities?.length
+                            ? selectedConn.config.entities
+                            : ['Customer', 'Invoice', 'Payment', 'Vendor', 'Account', 'Item', 'Employee'];
+  const nsObjects       = ['customer', 'invoice', 'vendor', 'account',
+                           'inventoryItem', 'salesOrder', 'purchaseOrder', 'employee'];
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,12 +91,22 @@ export default function Syncs() {
   };
 
   const handleCreate = async (values) => {
-    await createSync({ name: values.name, connectionId: values.connectionId, destinationId: values.destinationId });
+    await createSync({
+      name:              values.name,
+      connectionId:      values.connectionId,
+      destinationId:     values.destinationId,
+      sourceEntity:      values.sourceEntity      || null,
+      destinationObject: values.destinationObject || null,
+      subsidiaryId:      values.subsidiaryId      || null,
+    });
     message.success('Sync job created');
     setDrawerOpen(false);
     form.resetFields();
     load();
   };
+
+  const openMap = (job) => { setMapJob(job); setMapOpen(true); };
+  const handleMapSaved = () => { message.success('Field mappings saved'); load(); };
 
   const columns = [
     {
@@ -96,22 +122,36 @@ export default function Syncs() {
     {
       title: 'Source',
       key: 'source',
-      render: (_, r) => (
-        <Space>
-          <span>{r.connection?.type === 'QUICKBOOKS' ? '🟢' : '🐬'}</span>
-          <Text>{r.connection?.name}</Text>
-        </Space>
-      ),
+      render: (_, r) => {
+        const icons = { QUICKBOOKS: '🟢', MYSQL: '🐬', MSSQL: '🗄️' };
+        const entity = r.config?.sourceEntity;
+        return (
+          <Space>
+            <span>{icons[r.connection?.type] || '🔌'}</span>
+            <div>
+              <Text>{r.connection?.name}</Text>
+              {entity && <div><Text type="secondary" style={{ fontSize: 11 }}>{entity}</Text></div>}
+            </div>
+          </Space>
+        );
+      },
     },
     {
       title: 'Destination',
       key: 'dest',
-      render: (_, r) => (
-        <Space>
-          <span>{r.destination?.type === 'AZURE_SQL' ? '🔷' : '☁️'}</span>
-          <Text>{r.destination?.name}</Text>
-        </Space>
-      ),
+      render: (_, r) => {
+        const icons = { AZURE_SQL: '🔷', AZURE_BLOB: '☁️', MYSQL_CLOUD: '🐬', NETSUITE: '🟣' };
+        const obj = r.config?.destinationObject;
+        return (
+          <Space>
+            <span>{icons[r.destination?.type] || '📦'}</span>
+            <div>
+              <Text>{r.destination?.name}</Text>
+              {obj && <div><Text type="secondary" style={{ fontSize: 11 }}>{obj}</Text></div>}
+            </div>
+          </Space>
+        );
+      },
     },
     {
       title: 'Status',
@@ -141,6 +181,11 @@ export default function Syncs() {
           <Button size="small" icon={<HistoryOutlined />} onClick={() => openLogs(record)}>
             Logs
           </Button>
+          {record.connection?.type === 'QUICKBOOKS' && record.destination?.type === 'NETSUITE' && (
+            <Button size="small" icon={<ApartmentOutlined />} onClick={() => openMap(record)}>
+              Map Fields
+            </Button>
+          )}
           <Popconfirm title="Delete this sync job?" onConfirm={() => handleDelete(record.id)} okText="Delete" okType="danger">
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -189,22 +234,58 @@ export default function Syncs() {
           <Form.Item label="Source Connection" name="connectionId" rules={[{ required: true }]}>
             <Select
               placeholder="Select a source connection"
-              options={connections.map((c) => ({
-                value: c.id,
-                label: `${c.type === 'QUICKBOOKS' ? '🟢' : '🐬'} ${c.name}`,
-              }))}
+              options={connections.map((c) => {
+                const icons = { QUICKBOOKS: '🟢', MYSQL: '🐬', MSSQL: '🗄️' };
+                return { value: c.id, label: `${icons[c.type] || '🔌'} ${c.name}` };
+              })}
             />
           </Form.Item>
 
           <Form.Item label="Destination" name="destinationId" rules={[{ required: true }]}>
             <Select
               placeholder="Select a destination"
-              options={destinations.map((d) => ({
-                value: d.id,
-                label: `${d.type === 'AZURE_SQL' ? '🔷' : '☁️'} ${d.name}`,
-              }))}
+              options={destinations.map((d) => {
+                const icons = { AZURE_SQL: '🔷', AZURE_BLOB: '☁️', MYSQL_CLOUD: '🐬', NETSUITE: '🟣' };
+                return { value: d.id, label: `${icons[d.type] || '📦'} ${d.name}` };
+              })}
             />
           </Form.Item>
+
+          {/* Entity / object selectors — shown only for QB → NetSuite */}
+          {isQbSource && (
+            <Form.Item
+              label="Source Entity (QuickBooks)"
+              name="sourceEntity"
+              rules={[{ required: isNsDest, message: 'Required for NetSuite destination' }]}
+            >
+              <Select
+                placeholder="Select QB entity to sync"
+                options={qbEntities.map(e => ({ value: e, label: e }))}
+              />
+            </Form.Item>
+          )}
+          {isNsDest && (
+            <Form.Item
+              label="Destination Object (NetSuite)"
+              name="destinationObject"
+              rules={[{ required: true, message: 'Required' }]}
+            >
+              <Select
+                placeholder="Select NetSuite record type"
+                options={nsObjects.map(o => ({ value: o, label: o }))}
+              />
+            </Form.Item>
+          )}
+          {isNsDest && (
+            <Form.Item
+              label="Subsidiary ID"
+              name="subsidiaryId"
+              rules={[{ required: true, message: 'Subsidiary ID is required for NetSuite' }]}
+              tooltip="Internal NetSuite Subsidiary ID. Find it in Setup → Company → Subsidiaries."
+            >
+              <InputNumber min={1} style={{ width: '100%' }} placeholder="e.g. 1" />
+            </Form.Item>
+          )}
 
           <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
             <Button onClick={() => setDrawerOpen(false)}>Cancel</Button>
@@ -212,6 +293,16 @@ export default function Syncs() {
           </Space>
         </Form>
       </Drawer>
+
+      {/* Field Mapping Drawer */}
+      {mapJob && (
+        <FieldMappingDrawer
+          job={mapJob}
+          open={mapOpen}
+          onClose={() => setMapOpen(false)}
+          onSaved={handleMapSaved}
+        />
+      )}
 
       {/* Logs Modal */}
       <Modal
